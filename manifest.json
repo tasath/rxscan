@@ -2,7 +2,7 @@
   "name": "RxScan — Συνταγές ΙΔΙΚΑ",
   "short_name": "RxScan",
   "description": "Φωτογράφισε SMS συνταγών ΙΔΙΚΑ και δημιούργησε barcode σε δευτερόλεπτα",
-  "start_url": "/",
+  "start_url": "/rxscan/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0a0a0a",
@@ -22,6 +22,10 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["medical", "utilities"],
-  "screenshots": []
+  "categories": [
+    "medical",
+    "utilities"
+  ],
+  "screenshots": [],
+  "scope": "/rxscan/"
 }
