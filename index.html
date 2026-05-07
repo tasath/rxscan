@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0a">
+<title>RxScan</title>
+<link rel="manifest" href="manifest.json">
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface2: #1e1e1e;
+    --border: rgba(255,255,255,0.08);
+    --text: #f0f0f0;
+    --text2: #888;
+    --text3: #444;
+    --green: #00d97e;
+    --green-dim: rgba(0,217,126,0.12);
+    --green-glow: rgba(0,217,126,0.3);
+    --red: #ff4757;
+    --amber: #ffa502;
+    --radius: 16px;
+    --font: 'Space Grotesk', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── SCREENS ─────────────────────────────────────────── */
+  .screen { display: none; min-height: 100vh; min-height: 100dvh; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* ── HOME SCREEN ─────────────────────────────────────── */
+  #screen-home {
+    align-items: center;
+    justify-content: space-between;
+    padding: 60px 24px 48px;
+    background: var(--bg);
+  }
+
+  .home-top {
+    text-align: center;
+    width: 100%;
+  }
+
+  .app-icon {
+    width: 72px;
+    height: 72px;
+    background: var(--green-dim);
+    border: 1.5px solid var(--green);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 32px;
+  }
+
+  .app-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+  }
+
+  .app-subtitle {
+    font-size: 14px;
+    color: var(--text2);
+    font-weight: 400;
+  }
+
+  .home-center {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* Big camera button */
+  .btn-capture {
+    width: 100%;
+    max-width: 340px;
+    height: 140px;
+    background: var(--green);
+    border: none;
+    border-radius: 24px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-family: var(--font);
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 0 40px var(--green-glow);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-capture::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0);
+    transition: background 0.15s;
+  }
+
+  .btn-capture:active { transform: scale(0.97); }
+  .btn-capture:active::after { background: rgba(255,255,255,0.1); }
+
+  .btn-capture svg { width: 48px; height: 48px; color: #000; }
+
+  .btn-capture-label {
+    font-size: 18px;
+    font-weight: 700;
+    color: #000;
+    letter-spacing: -0.3px;
+  }
+
+  /* Manual input */
+  .manual-section {
+    width: 100%;
+    max-width: 340px;
+  }
+
+  .manual-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  .manual-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .manual-input {
+    flex: 1;
+    padding: 12px 14px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+
+  .manual-input::placeholder { color: var(--text3); }
+  .manual-input:focus { border-color: var(--green); }
+
+  .btn-manual-go {
+    padding: 12px 16px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .btn-manual-go:active { background: var(--surface); border-color: var(--green); }
+
+  .home-tip {
+    font-size: 12px;
+    color: var(--text3);
+    text-align: center;
+    max-width: 280px;
+    line-height: 1.6;
+  }
+
+  /* ── ANALYZING SCREEN ────────────────────────────────── */
+  #screen-analyzing {
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    background: var(--bg);
+  }
+
+  .analyzing-preview {
+    width: calc(100% - 48px);
+    max-width: 340px;
+    aspect-ratio: 4/3;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1.5px solid var(--border);
+    position: relative;
+  }
+
+  .analyzing-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .analyzing-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,217,126,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .scan-line {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    height: 2px;
+    background: var(--green);
+    box-shadow: 0 0 12px var(--green-glow);
+    animation: scanline 1.5s ease-in-out infinite;
+    border-radius: 2px;
+  }
+
+  @keyframes scanline {
+    0%   { top: 20%; opacity: 1; }
+    50%  { top: 80%; opacity: 1; }
+    100% { top: 20%; opacity: 1; }
+  }
+
+  .analyzing-status {
+    text-align: center;
+  }
+
+  .analyzing-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .analyzing-sub {
+    font-size: 13px;
+    color: var(--text2);
+  }
+
+  .btn-cancel {
+    padding: 10px 24px;
+    background: transparent;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text2);
+    font-family: var(--font);
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  /* ── RESULTS SCREEN ──────────────────────────────────── */
+  #screen-results {
+    background: var(--bg);
+    flex-direction: column;
+  }
+
+  .results-header {
+    padding: 20px 20px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .results-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .results-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--green);
+    background: var(--green-dim);
+    border: 1px solid rgba(0,217,126,0.2);
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+
+  .results-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Barcode card */
+  .rx-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .rx-card-header {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .rx-idx {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+
+  .rx-status {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 20px;
+  }
+
+  .rx-status.active   { background: rgba(0,217,126,0.12); color: #00d97e; }
+  .rx-status.upcoming { background: rgba(255,165,2,0.12);  color: #ffa502; }
+  .rx-status.expired  { background: rgba(255,71,87,0.12);  color: #ff4757; }
+
+  .rx-card-body {
+    padding: 14px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .rx-card-body canvas {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .rx-number {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: #111;
+    letter-spacing: 1px;
+  }
+
+  .rx-card-footer {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .rx-dates {
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  .rx-dates span {
+    display: block;
+  }
+
+  /* Bottom action bar */
+  .results-actions {
+    padding: 12px 20px 32px;
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+  }
+
+  .btn-action {
+    flex: 1;
+    padding: 14px 8px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .btn-action:active { background: var(--surface2); border-color: var(--green); }
+  .btn-action svg { width: 20px; height: 20px; }
+
+  .btn-action.primary {
+    background: var(--green);
+    border-color: var(--green);
+    color: #000;
+    flex: 1.4;
+  }
+
+  .btn-action.primary:active { background: #00c070; }
+
+  .btn-new {
+    padding: 0 12px;
+    flex: 0.7;
+  }
+
+  /* ── ERROR STATE ─────────────────────────────────────── */
+  .error-box {
+    margin: 0 20px;
+    padding: 16px;
+    background: rgba(255,71,87,0.1);
+    border: 1.5px solid rgba(255,71,87,0.3);
+    border-radius: var(--radius);
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .error-box.show { display: flex; }
+
+  .error-text {
+    font-size: 14px;
+    color: var(--red);
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  .error-hint {
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  .btn-retry {
+    align-self: flex-start;
+    padding: 8px 16px;
+    background: rgba(255,71,87,0.15);
+    border: 1px solid rgba(255,71,87,0.3);
+    border-radius: 8px;
+    color: var(--red);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* ── PRINT ZONE ──────────────────────────────────────── */
+  #print-zone { display: none; }
+
+  @media print {
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    html, body { height: auto !important; overflow: visible !important; margin: 0 !important; padding: 0 !important; }
+    body > *:not(#print-zone) { display: none !important; }
+    #print-zone {
+      display: block !important;
+      position: absolute !important;
+      top: 0; left: 0; width: 100%;
+      font-family: Arial, sans-serif;
+      padding: 12px;
+    }
+    .pz-header {
+      border-bottom: 2px solid #1a5f3f;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .pz-title { font-size: 14px; font-weight: 700; color: #1a5f3f; }
+    .pz-date  { font-size: 10px; color: #666; }
+    .pz-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .pz-card  { border: 1px solid #ddd; padding: 10px; text-align: center; break-inside: avoid; }
+    .pz-card canvas { max-width: 100%; display: block; margin: 0 auto; }
+    .pz-idx   { font-size: 9px; color: #999; margin-bottom: 4px; }
+    .pz-num   { font-family: 'Courier New', monospace; font-size: 11px; font-weight: 700; margin-top: 5px; }
+    .pz-dates { font-size: 10px; color: #555; margin-top: 3px; line-height: 1.5; }
+  }
+
+  /* ── TOAST ───────────────────────────────────────────── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    transition: all 0.25s;
+    z-index: 999;
+    pointer-events: none;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ── UTILS ───────────────────────────────────────────── */
+  input[type=file] { display: none; }
+</style>
+</head>
+<body>
+
+<!-- ═══ HOME ═══ -->
+<div class="screen active" id="screen-home">
+  <div class="home-top">
+    <div class="app-icon">💊</div>
+    <div class="app-title">RxScan</div>
+    <div class="app-subtitle">Συνταγές ΙΔΙΚΑ → Barcode</div>
+  </div>
+
+  <div class="home-center">
+    <!-- Primary action -->
+    <button class="btn-capture" id="btn-capture">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+      <span class="btn-capture-label">Φωτογράφισε το SMS</span>
+    </button>
+
+    <!-- Manual fallback -->
+    <div class="manual-section">
+      <div class="manual-label">ή πληκτρολόγησε αριθμό</div>
+      <div class="manual-row">
+        <input type="number"
+               class="manual-input"
+               id="inp-manual"
+               placeholder="2603273623318101"
+               maxlength="16"
+               inputmode="numeric">
+        <button class="btn-manual-go" id="btn-manual-go">→</button>
+      </div>
+    </div>
+
+    <div class="home-tip">
+      Φωτογράφισε την οθόνη του κινητού με καλό φωτισμό και χωρίς αντανακλάσεις
+    </div>
+  </div>
+
+  <!-- Hidden file inputs -->
+  <input type="file" id="inp-camera" accept="image/*" capture="environment">
+  <input type="file" id="inp-gallery" accept="image/*">
+</div>
+
+<!-- ═══ ANALYZING ═══ -->
+<div class="screen" id="screen-analyzing">
+  <div class="analyzing-preview">
+    <img id="preview-img" src="" alt="">
+    <div class="analyzing-overlay">
+      <div class="scan-line"></div>
+    </div>
+  </div>
+
+  <div class="analyzing-status">
+    <div class="analyzing-label" id="analyzing-label">Ανάλυση εικόνας...</div>
+    <div class="analyzing-sub" id="analyzing-sub">Αναζήτηση αριθμών συνταγών</div>
+  </div>
+
+  <button class="btn-cancel" id="btn-cancel">Ακύρωση</button>
+</div>
+
+<!-- ═══ RESULTS ═══ -->
+<div class="screen" id="screen-results">
+  <div class="results-header">
+    <div class="results-title">Συνταγές</div>
+    <div class="results-count" id="results-count">0</div>
+  </div>
+
+  <!-- Error state -->
+  <div class="error-box" id="error-box">
+    <div class="error-text" id="error-text">Δεν βρέθηκαν συνταγές.</div>
+    <div class="error-hint">Δοκιμάστε ξανά με καλύτερο φωτισμό και χωρίς αντανακλάσεις στην οθόνη.</div>
+    <button class="btn-retry" id="btn-retry">↩ Νέα φωτογραφία</button>
+  </div>
+
+  <div class="results-scroll" id="results-scroll"></div>
+
+  <div class="results-actions">
+    <button class="btn-action" id="btn-new">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      Νέο
+    </button>
+    <button class="btn-action primary" id="btn-print">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Εκτύπωση
+    </button>
+  </div>
+</div>
+
+<!-- Print zone -->
+<div id="print-zone"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ── Config ─────────────────────────────────────────────
+const VISION_KEY = 'AIzaSyA1bD5akYimOEtE9SMvVi6vqTPJgkb1yw4';
+
+// ── State ──────────────────────────────────────────────
+let photoData   = null;
+let prescriptions = [];
+
+// ── Utils ──────────────────────────────────────────────
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+function toast(msg, duration = 2500) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), duration);
+}
+
+function parseDate(s) {
+  if (!s) return null;
+  const p = s.split('/');
+  return p.length === 3 ? new Date(+p[2], +p[1]-1, +p[0]) : null;
+}
+
+function rxStatus(ekdosi, lixis) {
+  const now = new Date();
+  const e = parseDate(ekdosi);
+  const l = parseDate(lixis);
+  if (l && l < now) return 'expired';
+  if (e && e > now) return 'upcoming';
+  return 'active';
+}
+
+function statusLabel(s) {
+  return { active: '✓ Ενεργή', upcoming: '⏳ Προσεχής', expired: '✕ Ληγμένη' }[s];
+}
+
+// ── Image compression ──────────────────────────────────
+async function compressImage(dataUrl, maxBytes = 3_500_000) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      const maxDim = 2400;
+      if (w > maxDim || h > maxDim) {
+        const r = Math.min(maxDim/w, maxDim/h);
+        w = Math.round(w * r); h = Math.round(h * r);
+      }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      let q = 0.85;
+      const compress = () => {
+        const result = canvas.toDataURL('image/jpeg', q);
+        const bytes  = Math.round((result.length - 23) * 3/4);
+        if (bytes <= maxBytes || q <= 0.3) { resolve(result); return; }
+        q -= 0.15;
+        compress();
+      };
+      compress();
+    };
+    img.src = dataUrl;
+  });
+}
+
+// ── Extract prescriptions from OCR text ───────────────
+function extractRx(text) {
+  const found = [];
+  const norm  = text
+    .replace(/[oO]/g, '0').replace(/[lI|]/g, '1')
+    .replace(/[sS]/g, '5').replace(/[bB]/g, '8').replace(/[zZ]/g, '2');
+
+  const codes  = [];
+  const dateRx = /(\d{2}\/\d{2}\/\d{4})/g;
+
+  for (const src of [text, norm]) {
+    let m;
+    const r1 = /#\s*(\d{16})/g;
+    const r2 = /(?<!\d)(\d{16})(?!\d)/g;
+    while ((m = r1.exec(src)) !== null)
+      if (!codes.find(c => c.code === m[1])) codes.push({ code: m[1], pos: m.index });
+    while ((m = r2.exec(src)) !== null)
+      if (!codes.find(c => c.code === m[1])) codes.push({ code: m[1], pos: m.index });
+  }
+
+  codes.sort((a, b) => a.pos - b.pos);
+
+  const dates = []; let m;
+  while ((m = dateRx.exec(text)) !== null) dates.push({ date: m[1], pos: m.index });
+
+  codes.forEach(c => {
+    const next = dates.filter(d => d.pos > c.pos).slice(0, 2);
+    found.push({ number: c.code, ekdosi: next[0]?.date || '', lixis: next[1]?.date || '' });
+  });
+
+  return found;
+}
+
+// ── OCR via Google Vision ──────────────────────────────
+async function runOCR(dataUrl) {
+  const compressed = await compressImage(dataUrl);
+  const b64 = compressed.split(',')[1];
+
+  const res = await fetch(
+    'https://vision.googleapis.com/v1/images:annotate?key=' + VISION_KEY,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        requests: [{
+          image: { content: b64 },
+          features: [{ type: 'TEXT_DETECTION', maxResults: 1 }],
+          imageContext: { languageHints: ['el', 'en'] }
+        }]
+      })
+    }
+  );
+
+  if (!res.ok) throw new Error('Σφάλμα σύνδεσης (' + res.status + ')');
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.responses?.[0]?.fullTextAnnotation?.text || '';
+}
+
+// ── Show results ───────────────────────────────────────
+function showResults(rxList) {
+  prescriptions = rxList;
+  const count   = rxList.length;
+
+  document.getElementById('results-count').textContent =
+    count + (count === 1 ? ' συνταγή' : ' συνταγές');
+
+  const errorBox = document.getElementById('error-box');
+  const scroll   = document.getElementById('results-scroll');
+
+  if (!count) {
+    errorBox.classList.add('show');
+    scroll.innerHTML = '';
+    goTo('results');
+    return;
+  }
+
+  errorBox.classList.remove('show');
+
+  scroll.innerHTML = rxList.map((p, i) => {
+    const st = rxStatus(p.ekdosi, p.lixis);
+    return `
+      <div class="rx-card">
+        <div class="rx-card-header">
+          <span class="rx-idx">Συνταγή ${i+1} / ${count}</span>
+          <span class="rx-status ${st}">${statusLabel(st)}</span>
+        </div>
+        <div class="rx-card-body">
+          <canvas id="bc${i}"></canvas>
+          <div class="rx-number">${p.number}</div>
+        </div>
+        <div class="rx-card-footer">
+          <div class="rx-dates">
+            ${p.ekdosi ? '<span>Έκδοση ' + p.ekdosi + '</span>' : ''}
+            ${p.lixis  ? '<span>Λήξη '   + p.lixis  + '</span>' : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  goTo('results');
+
+  // Generate barcodes after DOM update
+  requestAnimationFrame(() => {
+    rxList.forEach((p, i) => {
+      try {
+        JsBarcode('#bc' + i, p.number, {
+          format: 'CODE128',
+          lineColor: '#000',
+          width: 2,
+          height: 70,
+          displayValue: false,
+          background: '#fff',
+          margin: 6
+        });
+      } catch(e) { console.error('Barcode error:', e); }
+    });
+    buildPrintZone();
+  });
+}
+
+// ── Build print zone ───────────────────────────────────
+function buildPrintZone() {
+  const now   = new Date().toLocaleDateString('el-GR') + ' ' +
+                new Date().toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' });
+
+  const cards = prescriptions.map((p, i) => `
+    <div class="pz-card">
+      <div class="pz-idx">Συνταγή ${i+1} από ${prescriptions.length}</div>
+      <canvas id="pbc${i}"></canvas>
+      <div class="pz-num">${p.number}</div>
+      <div class="pz-dates">
+        ${p.ekdosi ? 'Έκδοση: ' + p.ekdosi : ''}
+        ${p.ekdosi && p.lixis ? '<br>' : ''}
+        ${p.lixis  ? 'Λήξη: '   + p.lixis  : ''}
+      </div>
+    </div>`).join('');
+
+  document.getElementById('print-zone').innerHTML = `
+    <div class="pz-header">
+      <div class="pz-title">Συνταγές ΙΔΙΚΑ</div>
+      <div class="pz-date">${now}</div>
+    </div>
+    <div class="pz-grid">${cards}</div>`;
+
+  requestAnimationFrame(() => {
+    prescriptions.forEach((p, i) => {
+      try {
+        JsBarcode('#pbc' + i, p.number, {
+          format: 'CODE128',
+          lineColor: '#000',
+          width: 1.8,
+          height: 65,
+          displayValue: false,
+          background: '#fff',
+          margin: 4
+        });
+      } catch(e) {}
+    });
+  });
+}
+
+// ── Photo flow ─────────────────────────────────────────
+async function handlePhoto(dataUrl) {
+  photoData = dataUrl;
+  document.getElementById('preview-img').src = dataUrl;
+  document.getElementById('analyzing-label').textContent = 'Ανάλυση εικόνας...';
+  document.getElementById('analyzing-sub').textContent   = 'Αναζήτηση αριθμών συνταγών';
+  goTo('analyzing');
+
+  try {
+    const text = await runOCR(dataUrl);
+    const rx   = extractRx(text);
+    showResults(rx);
+  } catch(e) {
+    // Show error in results screen
+    prescriptions = [];
+    document.getElementById('results-count').textContent = '0 συνταγές';
+    document.getElementById('error-text').textContent =
+      e.message.includes('billing') ? 'Απαιτείται ενεργοποίηση χρέωσης Google Cloud.' :
+      e.message.includes('403')     ? 'Σφάλμα εξουσιοδότησης API.' :
+      'Σφάλμα: ' + e.message;
+    document.getElementById('error-box').classList.add('show');
+    document.getElementById('results-scroll').innerHTML = '';
+    goTo('results');
+  }
+}
+
+function handleFile(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => handlePhoto(ev.target.result);
+  r.readAsDataURL(f);
+  e.target.value = '';
+}
+
+// ── Manual entry ───────────────────────────────────────
+function handleManual() {
+  const val = document.getElementById('inp-manual').value.trim();
+  if (!/^\d{16}$/.test(val)) {
+    toast('Εισάγετε ακριβώς 16 ψηφία');
+    return;
+  }
+  showResults([{ number: val, ekdosi: '', lixis: '' }]);
+  document.getElementById('inp-manual').value = '';
+}
+
+// ── Event listeners ────────────────────────────────────
+document.getElementById('btn-capture').addEventListener('click', () => {
+  document.getElementById('inp-camera').click();
+});
+
+document.getElementById('inp-camera').addEventListener('change', handleFile);
+document.getElementById('inp-gallery').addEventListener('change', handleFile);
+
+document.getElementById('btn-manual-go').addEventListener('click', handleManual);
+document.getElementById('inp-manual').addEventListener('keydown', e => {
+  if (e.key === 'Enter') handleManual();
+});
+
+document.getElementById('btn-cancel').addEventListener('click', () => goTo('home'));
+document.getElementById('btn-retry').addEventListener('click', () => goTo('home'));
+document.getElementById('btn-new').addEventListener('click', () => {
+  prescriptions = [];
+  photoData = null;
+  goTo('home');
+});
+
+document.getElementById('btn-print').addEventListener('click', () => {
+  buildPrintZone();
+  setTimeout(() => window.print(), 300);
+});
+
+// ── Service Worker registration ────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
