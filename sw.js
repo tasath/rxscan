@@ -1,7 +1,7 @@
 const CACHE = 'rxscan-v1';
 const ASSETS = [
-  '/',
-  '/index.html',
+  '/rxscan/',
+  '/rxscan/index.html',
   '/manifest.json',
   'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js'
 ];
