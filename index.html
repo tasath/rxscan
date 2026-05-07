@@ -933,12 +933,7 @@ document.getElementById('btn-print').addEventListener('click', () => {
   setTimeout(() => window.print(), 300);
 });
 
-// ── Service Worker registration ────────────────────────
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  });
-}
+// Service worker disabled for simplicity
 </script>
 </body>
 </html>
